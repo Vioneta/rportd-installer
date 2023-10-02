@@ -13,7 +13,7 @@ create_selfsigned_cert() {
   SSL_EXT_FILE=/etc/rport/ssl/${FQDN}.ext
   ################## Create a CA #############################################
   # Generate private key
-  CA_NAME=${FQDN}
+  CA_NAME="${FQDN} Root CA"
   CA_CERT=/etc/rport/ssl/ca/export/${CA_NAME}-ca-root-cert.crt
   CA_KEY=/etc/rport/ssl/${CA_NAME}-ca.key
   openssl genrsa -out "${CA_KEY}" 2048
@@ -23,7 +23,7 @@ create_selfsigned_cert() {
 
   if [ -e "${CA_CERT}" ]; then
     throw_debug "Certificate Authority created in ${CA_CERT}. Import this file into OS and/or browser."
-    throw_info "Read https://kb.rport.io/ carefully."
+    throw_info "Read https://kb.rport.io/install-the-rport-server/install-on-premises#import-the-root-certificate-authority-root-ca carefully."
   else
     throw_fatal "Creating Certificate Authority failed."
     false
@@ -93,12 +93,36 @@ create_letsencrypt_cert() {
   chgrp rport "${CERT_LIVE_DIR}"
   SSL_KEY_FILE="${CERT_LIVE_DIR}"/privkey.pem
   SSL_CERT_FILE="${CERT_LIVE_DIR}"/fullchain.pem
-  HOOK_FILE=/etc/letsencrypt/renewal-hooks/deploy/restart-rportd
-  echo '#!/bin/sh
-test -e /usr/bin/logger && /usr/bin/logger -t certbot "Restarting rportd after certificate renewal"
-/usr/bin/systemctl restart rportd' >$HOOK_FILE
-  chmod 0700 $HOOK_FILE
   throw_info "Certificates have been created for your instance "
+  create_letsencrypt_hooks
+}
+
+#---  FUNCTION  -------------------------------------------------------------------------------------------------------
+#          NAME:  create_letsencrypt_hooks()
+#   DESCRIPTION:  create a pre and post hook file
+#    PARAMETERS:  none
+#       RETURNS:  0 on success, 1 otherwise
+#----------------------------------------------------------------------------------------------------------------------
+create_letsencrypt_hooks() {
+  if [ -e /etc/letsencrypt/renewal-hooks/ ];then
+    true
+  else
+    throw_error "Let's encrypt renewal-hook folder missing."
+    return 1
+  fi
+  cat << EOF > /etc/letsencrypt/renewal-hooks/pre/rport.sh
+#!/bin/sh
+echo "Stopping rportd for certificate renewal"|logger -t certbot
+systemctl stop rportd
+EOF
+  chmod +x /etc/letsencrypt/renewal-hooks/pre/rport.sh
+  cat << EOF > /etc/letsencrypt/renewal-hooks/post/rport.sh
+#!/bin/sh
+echo "Starting rportd after certificate renewal"|logger -t certbot
+systemctl start rportd
+EOF
+    chmod +x /etc/letsencrypt/renewal-hooks/post/rport.sh
+    throw_info "Let's encrypt renewal hooks created."
 }
 
 if [ "$API_PORT" -ne 443 ]; then

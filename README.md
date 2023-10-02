@@ -1,6 +1,6 @@
 A script to install and configure your RPort server in no time.
 
-> 📣 This repository holds the sources of https://get.rport.io.
+> 📣 This repository holds the sources of https://get.openrport.io.
 
 ## Why an installer script?
 We believe modern software must provide maximum user-friendliness. 
@@ -36,7 +36,7 @@ RHEL²   | 8          | `x86_64`                      | no
 
 Then download the script and execute it.
 ```shell
-curl -JO https://get.rport.io
+curl -JO https://get.openrport.io
 sudo bash rportd-installer.sh -h
 sudo bash rportd-installer.sh <YOUR-OPTIONS>
 ```
@@ -46,7 +46,7 @@ We also provide a script for an easy update to the latest stable version.
 
 Just download and execute.
 ```shell
-curl -JO https://get.rport.io/update
+curl -JO https://get.openrport.io/update
 sudo bash rportd-update.sh -h
 sudo bash rportd-update.sh <YOUR-OPTIONS>
 ```

@@ -3,7 +3,7 @@ on_fail() {
   echo "We are very sorry. Something went wrong."
   echo "Command '$previous_command' exited erroneous on line $1."
   echo "If you need help solving the issue ask for help on"
-  echo "https://github.com/cloudradar-monitoring/rportd-installer/discussions/categories/help-needed"
+  echo "https://github.com/openrport/rportd-installer/discussions/categories/help-needed"
   echo ""
 }
 debug() {

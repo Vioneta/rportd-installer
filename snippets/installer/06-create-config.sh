@@ -17,11 +17,13 @@ else
 fi
 
 sed -i "s/auth = \"clientAuth/#auth = \"clientAuth\"/g" $CONFIG_FILE
-sed -i "s|#auth_file.*client-auth.json|auth_file = \"/var/lib/rport/client-auth.json|g" $CONFIG_FILE
+#sed -i "s|#auth_file.*client-auth.json|auth_file = \"/var/lib/rport/client-auth.json|g" $CONFIG_FILE
+sed -i "s|#auth_table = \"clients_auth\".*|auth_table = \"clients_auth\"|g" $CONFIG_FILE
 sed -i "s/address = \"0.0.0.0:3000\"/address = \"0.0.0.0:${API_PORT}\"/g" $CONFIG_FILE
 sed -i "s/auth = \"admin:foobaz\"/#auth = \"admin:foobaz\"/g" $CONFIG_FILE
 sed -i "s/#auth_user_table/auth_user_table/g" $CONFIG_FILE
 sed -i "s/#auth_group_table/auth_group_table/g" $CONFIG_FILE
+sed -i "s/#auth_group_details_table/auth_group_details_table/g" $CONFIG_FILE
 sed -i "s/#db_type = \"sqlite\"/db_type = \"sqlite\"/g" $CONFIG_FILE
 sed -i "s|#db_name = \"/var.*|db_name = \"$DB_FILE\"|g" $CONFIG_FILE
 sed -i "s|#used_ports = .*|used_ports = ['${TUNNEL_PORT_RANGE}']|g" $CONFIG_FILE
@@ -48,7 +50,9 @@ throw_debug "Configuration file $CONFIG_FILE written. "
 sleep 0.3
 [ -n "${ADMIN_PASSWD}" ] || ADMIN_PASSWD=$(pwgen 9 1 2>/dev/null||openssl rand -hex 5)
 PASSWD_HASH=$(htpasswd -nbB password "$ADMIN_PASSWD"|cut -d: -f2)
+CLIENT_PASSWD=$(pwgen 18 1 2>/dev/null||openssl rand -hex 9)
 ## Create the database and the first user
+throw_debug "Will now create the RPort Database $DB_FILE."
 test -e "$DB_FILE"&& rm -f "$DB_FILE"
 touch "$DB_FILE"
 chown rport:rport "$DB_FILE"
@@ -56,6 +60,7 @@ cat <<EOF|sqlite3 "$DB_FILE"
 CREATE TABLE "users" (
   "username" TEXT(150) NOT NULL,
   "password" TEXT(255) NOT NULL,
+  "password_expired" BOOLEAN NOT NULL CHECK (password_expired IN (0, 1)) DEFAULT 0,
   "token" TEXT(36) DEFAULT NULL,
   "two_fa_send_to" TEXT(150),
   "totp_secret" TEXT DEFAULT ""
@@ -72,8 +77,20 @@ ON "groups" (
   "username" ASC,
   "group" ASC
 );
-INSERT INTO users VALUES('admin','$PASSWD_HASH',null,'$EMAIL','');
+CREATE TABLE "group_details" (
+  "name" TEXT(150) NOT NULL,
+  "permissions" TEXT DEFAULT "{}"
+);
+CREATE UNIQUE INDEX "main"."name" ON "group_details" (
+  "name" ASC
+);
+INSERT INTO users VALUES('admin','$PASSWD_HASH',0,null,'$EMAIL','');
 INSERT INTO groups VALUES('admin','Administrators');
+CREATE TABLE "clients_auth" (
+  "id" varchar(100) PRIMARY KEY,
+  "password" varchar(100) NOT NULL
+);
+INSERT INTO clients_auth VALUES('client1','$CLIENT_PASSWD');
 EOF
 throw_debug "RPort Database $DB_FILE created."
 sleep 0.3

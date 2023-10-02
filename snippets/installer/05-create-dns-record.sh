@@ -13,6 +13,7 @@ wait_for_dns_ready() {
   done
   for i in $(seq 30); do
     if fqdn_is_public "${FQDN}"; then
+      echo ""
       throw_info "DNS entry has become available. "
       DNS_READY=1
       break
@@ -24,7 +25,7 @@ wait_for_dns_ready() {
   done
   if [ $DNS_READY -eq 0 ]; then
     throw_error "Your hostname $FQDN has not become available on the DNS."
-    throw_hint "Go to https://rport.io/en/contact and ask for help."
+    throw_hint "Go to https://openrport.io/en/contact and ask for help."
     throw_fatal "Creating an FQDN for your RPort server failed. "
   fi
   throw_info "Waiting for DNS records being propagated ... be patient"
@@ -41,7 +42,7 @@ if [ -z "$FQDN" ]; then
   FQDN=$(curl -Ss https://freedns.rport.io -F create=random)
   DNS_CREATED=1
   PUBLIC_FQDN=1
-  throw_info "Creating random FQDN on Freedns *.users.rport.io."
+   throw_info "Creating random FQDN ${FQDN} on Freedns *.users.openrport.io."
   wait_for_dns_ready
 elif [[ $FQDN =~ (.*)\.users\.rport\.io$ ]]; then
   # Register a custom DNS record if no FQDN is specified using the free dns service of RPort

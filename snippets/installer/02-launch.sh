@@ -57,6 +57,7 @@ TUNNEL_PORT_RANGE='20000-30000'
 TWO_FA=email
 INSTALL_GUACD=1
 VERSION=0
+# CHECK VERSION
 
 # extract options and their arguments into variables.
 while true; do
@@ -138,6 +139,16 @@ if [ -e /etc/os-release ] && grep -q '^REDHAT_SUPPORT_PRODUCT_VERSION=".*Stream"
   throw_fatal "Sorry. CentOS Stream not supported yet."
 fi
 
+if [ -e /etc/os-release ] && grep -q "^NAME=\"Ubuntu\"" /etc/os-release; then
+  if grep -q "^VERSION=.*LTS" /etc/os-release; then
+    true
+  elif grep -q "^PRETTY_NAME=.*LTS" /etc/os-release; then
+    true
+  else
+    throw_fatal "Sorry. Ubuntu none LTS versions are not supported."
+  fi
+fi
+
 if [ -e /etc/os-release ] && grep -q "^ID_LIKE.*rhel" /etc/os-release; then
   if rpm -qa | grep -q epel-release; then
     true
@@ -169,4 +180,21 @@ if [ -z $EMAIL ] && [ $TWO_FA != 'none' ]; then
   echo " | To send the first 2fa-token a ${bold}valid email address is needed${normal}."
   echo " | Your email address will be stored only locally on this system inside the user database."
   ask_for_email
+fi
+
+if [ $TWO_FA == "email" ] && [ -n "$EMAIL" ] && [ $PUBLIC_FQDN -eq 0 ] && [ -n "$FQDN" ] && [ "$EMAIL" != "test@example.com" ]; then
+  throw_error "2FA via the free-2fa-email service requires a public FQDN."
+  throw_hint "Use TOTP or disable 2FA. You can add your own SMTP server later."
+  throw_fatal "Configuration conflict."
+fi
+
+if id rport >/dev/null 2>&1; then
+  if getent passwd rport | cut -d: -f6 | grep -q "/var/lib/rport"; then
+    true
+  else
+    throw_error "A user 'rport' already exists but with a wrong home dir."
+    throw_hint "Delete the user or change the home dir to /var/lib/rport."
+    throw_fatal "Requirements not met."
+  fi
+
 fi

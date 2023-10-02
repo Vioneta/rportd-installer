@@ -1,6 +1,17 @@
 # Install the RPort Server
-ARCH=$(uname -m | sed s/aarch64/arm64/)
-DOWNLOAD_URL="https://download.rport.io/rportd/${RELEASE}/latest.php?arch=${ARCH}"
+ARCH=$(uname -m)
+if [ -z "$USE_VERSION" ];then
+  # Use latest version
+  DOWNLOAD_URL="https://download.openrport.io/rportd/${RELEASE}/latest.php?arch=${ARCH}"
+else
+  # Use a specific version
+  DOWNLOAD_URL="https://github.com/openrport/openrport/releases/download/${USE_VERSION}/rportd_${USE_VERSION}_Linux_$(uname -m).tar.gz"
+  if curl -i "$DOWNLOAD_URL" 2>&1 |grep -q "HTTP.*302";then
+    true
+  else
+    throw_fatal "No download found for version ${USE_VERSION}"
+  fi
+fi
 throw_debug "Downloading ${DOWNLOAD_URL}"
 curl -LSs "${DOWNLOAD_URL}" -o rportd.tar.gz
 tar vxzf rportd.tar.gz -C /usr/local/bin/ rportd
@@ -17,8 +28,13 @@ sed -i "s/key_seed = .*/key_seed =\"${KEY_SEED}\"/g" /etc/rport/rportd.conf
 
 # Create a systemd service
 /usr/local/bin/rportd --service install --service-user rport --config /etc/rport/rportd.conf||true
-sed -i '/^\[Service\]/a LimitNOFILE=1048576' /etc/systemd/system/rportd.service
-sed -i '/^\[Service\]/a LimitNPROC=512' /etc/systemd/system/rportd.service
+SYSTEMD_SERVICE="/etc/systemd/system/rportd.service"
+if [ -e "$SYSTEMD_SERVICE" ];then
+  throw_debug "Service file ${SYSTEMD_SERVICE} created"
+else
+  throw_fatal "Failed to create systemd service file ${SYSTEMD_SERVICE}"
+fi
+sed -i '/^\[Service\]/a LimitNPROC=512' "$SYSTEMD_SERVICE"
 systemctl daemon-reload
 #systemctl start rportd
 systemctl enable rportd
