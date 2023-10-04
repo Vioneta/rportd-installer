@@ -1,4 +1,5 @@
 rportd-installer.sh
 rportd-update.sh
+rportd-takeover.sh
 *.log
 .idea
