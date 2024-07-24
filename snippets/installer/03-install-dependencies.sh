@@ -8,7 +8,7 @@ install_dependencies() {
   DEP_INSTALL_LOG="/tmp/rportd-install-dependencies.log"
   echo "$(date) -- installing rportd dependencies" >$DEP_INSTALL_LOG
   RPM_DEPS=(unzip sqlite nmap-ncat httpd-tools tar)
-  DEB_DEPS=(pwgen apache2-utils unzip curl sqlite3 netcat)
+  DEB_DEPS=(pwgen apache2-utils unzip curl sqlite3 netcat-openbsd)
   if [ "$API_PORT" -eq 443 ]; then
     DEB_DEPS+=(certbot)
     RPM_DEPS+=(certbot)
